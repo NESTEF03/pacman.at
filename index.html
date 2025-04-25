@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pac-Man Classic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-container">
+    <div class="game" id="game"></div>
+    <div id="game-over">💀 Game Over!</div>
+    <div id="start-text">Drücke ENTER zum Starten</div>
+  </div>
+
+  <script>
+    const width = 20;
+    const layout = [
+      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+      1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,
+      1,0,1,1,1,0,0,1,0,1,1,0,0,1,0,1,1,1,0,1,
+      1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,0,0,1,
+      1,1,1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1,
+      1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,
+      1,0,1,1,1,0,0,1,1,1,1,0,0,1,0,1,1,1,0,1,
+      1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,
+      1,1,1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,
+      1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,1,
+      1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,
+      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+    ];
+
+    const game = document.getElementById('game');
+    const gameOverText = document.getElementById('game-over');
+    const startText = document.getElementById('start-text');
+    let cells = [];
+    let pacmanIndex = 0;
+    let ghostIndices = [];
+    let ghostTimers = [];
+    let gameRunning = false;
+
+    function createBoard() {
+      game.innerHTML = "";
+      cells = [];
+      for (let i = 0; i < layout.length; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        if (layout[i] === 1) {
+          cell.classList.add('wall');
+        } else if (layout[i] === 0) {
+          cell.classList.add('dot');
+        } else if (layout[i] === 2) {
+          pacmanIndex = i;
+        }
+        game.appendChild(cell);
+        cells.push(cell);
+      }
+    }
+
+    function placePacman() {
+      cells[pacmanIndex].classList.add('pacman');
+    }
+
+    function placeGhosts() {
+      ghostIndices = [91, 108, 170]; // beliebige Startpositionen
+      ghostIndices.forEach(i => cells[i].classList.add('ghost'));
+    }
+
+    function clearGhosts() {
+      ghostIndices.forEach(i => cells[i].classList.remove('ghost'));
+    }
+
+    function movePacman(e) {
+      if (!gameRunning) return;
+
+      cells[pacmanIndex].classList.remove('pacman');
+      let nextIndex = pacmanIndex;
+      const key = e.key.toLowerCase();
+
+      if ((key === "arrowleft" || key === "a") && pacmanIndex % width !== 0) nextIndex -= 1;
+      else if ((key === "arrowright" || key === "d") && pacmanIndex % width < width - 1) nextIndex += 1;
+      else if ((key === "arrowup" || key === "w") && pacmanIndex - width >= 0) nextIndex -= width;
+      else if ((key === "arrowdown" || key === "s") && pacmanIndex + width < width * width) nextIndex += width;
+
+      if (!cells[nextIndex].classList.contains('wall')) {
+        pacmanIndex = nextIndex;
+      }
+
+      if (cells[pacmanIndex].classList.contains('dot')) {
+        cells[pacmanIndex].classList.remove('dot');
+      }
+
+      if (cells[pacmanIndex].classList.contains('ghost')) {
+        endGame();
+        return;
+      }
+
+      cells[pacmanIndex].classList.add('pacman');
+    }
+
+    function moveGhost(index) {
+      const directions = [-1, 1, -width, width];
+      let dir = directions[Math.floor(Math.random() * directions.length)];
+      let newIndex = ghostIndices[index] + dir;
+
+      if (
+        cells[newIndex] &&
+        !cells[newIndex].classList.contains('wall') &&
+        !cells[newIndex].classList.contains('ghost')
+      ) {
+        cells[ghostIndices[index]].classList.remove('ghost');
+        ghostIndices[index] = newIndex;
+
+        if (ghostIndices[index] === pacmanIndex) {
+          endGame();
+          return;
+        }
+
+        cells[ghostIndices[index]].classList.add('ghost');
+      }
+    }
+
+    function startGame() {
+      gameRunning = true;
+      gameOverText.style.display = "none";
+      startText.style.display = "none";
+
+      createBoard();
+      placePacman();
+      placeGhosts();
+
+      document.addEventListener("keydown", movePacman);
+
+      ghostTimers = ghostIndices.map((_, i) =>
+        setInterval(() => moveGhost(i), 400 + i * 100)
+      );
+    }
+
+    function endGame() {
+      gameRunning = false;
+      gameOverText.style.display = "block";
+      ghostTimers.forEach(t => clearInterval(t));
+      document.removeEventListener("keydown", movePacman);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !gameRunning) {
+        startGame();
+      }
+    });
+
+    createBoard();
+    startText.style.display = "block";
+  </script>
+</body>
+<footer>By Nemanja</footer>
+</html>
